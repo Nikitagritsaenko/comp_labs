@@ -1,5 +1,7 @@
 %%%%% LAB4
 clear all
+clc
+%%
 % угол между направлением камеры-обскуры и направлением на центр (между 8 и 9 лучами)
 ang = acos((700^2 + 720^2 - 31^2) / (2 * 700 * 720));
 % положение края детектора (1-го столбца)
@@ -48,7 +50,7 @@ for i = 1:r_size
         end
     end
 end
-%%
+
 plot_b = 1;
 K = zeros(256, 208);
 points = zeros(208, 4, 2);%208 sectors of 4x[360 points with equal (r, z)] => 4 points with (r,z)
@@ -70,20 +72,24 @@ while index < end_index
     index = index + step;
     k = k + 1;
 end
+
+%%
 % sector_ids(25) = sector_ids(25) + 2;
 % sector_ids(26) = sector_ids(1);
-% sector_ids = [1 3 6 9 12 15 18 21 24 27 30 32 34 36 39 42 45 48 51 54 58 60 63 66 69 72];
+%sector_ids = [1 3 6 9 12 15 18 21 24 27 30 32 34 36 39 42 45 48 51 54 58 60 63 66 69 72];
 num_sec = 0;
+
+step = 1/8
 for k = 1:1:8
     for i = 1 : EXTR_N * N - 1
         num_sec = num_sec + 1;
         num_point = 0;
-        alpha = (k-1) * 0.1;
+        alpha = (k-1) * step;
         i1 = sector_ids(i);
         i2 = sector_ids(i+1);
         points(num_sec, 1, :) = (1 - alpha) * [RBDRY(i1) ZBDRY(i1)] + alpha * [c_r c_z];
         points(num_sec, 2, :) = (1 - alpha) * [RBDRY(i2) ZBDRY(i2)] + alpha * [c_r c_z];
-        alpha = (k) * 0.1;
+        alpha = (k) * step;
         points(num_sec, 3, :) = (1 - alpha) * [RBDRY(i2) ZBDRY(i2)] + alpha * [c_r c_z];
         points(num_sec, 4, :) = (1 - alpha) * [RBDRY(i1) ZBDRY(i1)] + alpha * [c_r c_z];
         if (k == 8)
@@ -91,11 +97,12 @@ for k = 1:1:8
             points(num_sec, 4, :) = [c_r c_z];
         end
     end
-    alpha = (k-1) * 0.1;
+    
+    alpha = (k-1) * step;
     num_sec = num_sec + 1;
     points(num_sec, 1, :) = (1 - alpha) * [RBDRY(sector_ids(26)) ZBDRY(sector_ids(26))] + alpha * [c_r c_z];
     points(num_sec, 2, :) = (1 - alpha) * [RBDRY(1) ZBDRY(1)] + alpha * [c_r c_z];
-    alpha = (k) * 0.1;
+    alpha = (k) * step;
     points(num_sec, 3, :) = (1 - alpha) * [RBDRY(1) ZBDRY(1)] + alpha * [c_r c_z];
     points(num_sec, 4, :) = (1 - alpha) * [RBDRY(sector_ids(26)) ZBDRY(sector_ids(26))] + alpha * [c_r c_z];
     if (k == 8)
@@ -104,43 +111,65 @@ for k = 1:1:8
     end
 end
 
+LINE = zeros(16, 3);
+SPD_R = zeros(16, 1);
+SPD_XY = zeros(17, 2);
+SPD_XY(1, :) = spd_xy;
+
+
 for j = 0:15
-    line = find_line_eq(spd_xy, aperture_xy);
-    %       расстояние до плоскости сечения
-    figure();
-    hold on;
-    grid on;
+    line = find_line_eq(SPD_XY(j + 1, :), aperture_xy);
+    LINE(j + 1, :) = line;
+    SPD_R(j + 1, :) = -sqrt(norm(SPD_XY(j + 1, :))^2 - line(3)^2);
+    SPD_XY(j + 2, :) = SPD_XY(j + 1, :) + spd_vect * spd_xy_step(mod(j, 2) + 1);
+end
+%%
+for j = 0:15
+    line = LINE(j + 1, :);
+    spd_r = SPD_R(j + 1, :);
+    spd_xy = SPD_XY(j + 1, :);
+    
+    figure(); hold on; grid on;
     axis( [ -0.8, 0.7, -0.6, 0.6 ] );
     title(line(3));
-    spd_r = -sqrt(norm(spd_xy)^2 - line(3)^2);
+    
     aperture_xz_offset = pdist([spd_xy(1), spd_xy(2); aperture_xy(1), aperture_xy(2)]);
     aperture_xz = [1, 0] * aperture_xz_offset;
+    
     % цикл по сегментам разбиения
     segments = points;
     set_prev = [];
+    
     for i = 1:length(segments)
         set = find_section(segments(i,:,:), line(3));
-        
         if (~isempty(set))
-            if (plot_b == 1)
-              
-                plot(set(:, 1), set(:, 2), 'b');
-                %  text(min(set(:, 1)) + (max(set(:, 1)) - min(set(:, 1)))/ 2,min(set(:, 2)) + (max(set(:, 2)) - min(set(:, 2)))/ 2, num2str(i));
-                %plot(-set(:, 1), set(:, 2), 'b');
+            if (plot_b == 1)  
+                plot(set(:, 1), set(:, 2), 'b', 'linewidth', 0.8);
+                plot(-set(:, 1), set(:, 2), 'b', 'linewidth', 0.8);
+                if (size(set, 1) < 4)
+                    for q = 1:size(set(:, 1), 1)
+                        x = [set(q, 1), -set(q, 1)];
+                        y = [set(q, 2), set(q, 2)];
+                        plot(x, y, 'b');
+                    end
+         
+                end
+                
                 set_prev = set;
             end
+            
             % ----- цикл по лучам
             for spd_z = 1:16
                 line2 = find_line_eq([spd_r, spd_z_start + spd_z_step * (spd_z - 1)], [spd_r, 0] + aperture_xz);
-                %pdist([spd_r, spd_z_start + spd_z_step * (spd_z - 1); [spd_r, 0] + aperture_xz])
-                
+             
                 % лучи в 4-х плоскостях попадают в центральный столб токамака
                 if (j < 13)
                     points_int = findIntersection(set, line2);
+                    
                     % пересечение прямой и кривой
                     if (size(points_int, 1) > 1)
                         if (plot_b == 1)
-                            plot(points_int(:, 1), points_int(:, 2), 'ro');
+                            plot(points_int(:, 1), points_int(:, 2), 'ko', 'MarkerSize', 3);
                         end
                         for point_ind = 1:1
                             K(j * 16 + spd_z, i) = K(j * 16 + spd_z, i) + pdist([points_int(point_ind, 1) points_int(point_ind, 2); points_int(point_ind+1, 1) points_int(point_ind+1, 2)]);
@@ -148,25 +177,25 @@ for j = 0:15
                     end
                 end
                 % if (j >= 6) % мб и не сработает
+                
                 points_int = findIntersection([-set(:, 1), set(:, 2)], line2);
+                
                 if (size(points_int, 1) > 1)
                     if (plot_b == 1)
-                        plot(points_int(:, 1), points_int(:, 2), 'ro');
+                        plot(points_int(:, 1), points_int(:, 2), 'ko', 'MarkerSize', 3);
                     end
                     for point_ind = 1:1
                         K(j * 16 + spd_z, i) = K(j * 16 + spd_z, i) + pdist([points_int(point_ind, 1) points_int(point_ind, 2); points_int(point_ind+1, 1) points_int(point_ind+1, 2)]);
                     end
                 end
-                %  end
+ 
                 if (plot_b == 1)
                     plot([spd_r spd_r + (spd_r+aperture_xz(1)-spd_r)*100], [(spd_z_start+spd_z_step*(spd_z-1)),...
-                        (spd_z_start+spd_z_step*(spd_z-1))+(0-(spd_z_start+spd_z_step*(spd_z-1)))*100 ], 'k');
+                        (spd_z_start+spd_z_step*(spd_z-1))+(0-(spd_z_start+spd_z_step*(spd_z-1)))*100 ], 'r', 'linewidth', 0.8);
                 end
             end
             
         end
     end
     
-    spd_xy = spd_xy + spd_vect * spd_xy_step(mod(j, 2) + 1);
 end
-K;
