@@ -26,4 +26,3 @@ function [points] = findIntersection(curve, line)
         points = points(idx, :);
     end
 end
-
