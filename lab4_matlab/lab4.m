@@ -124,14 +124,17 @@ for j = 0:15
     SPD_XY(j + 2, :) = SPD_XY(j + 1, :) + spd_vect * spd_xy_step(mod(j, 2) + 1);
 end
 %%
+plot_b = 0;
 for j = 0:15
     line = LINE(j + 1, :);
     spd_r = SPD_R(j + 1, :);
     spd_xy = SPD_XY(j + 1, :);
     
-    figure(); hold on; grid on;
-    axis( [ -0.8, 0.7, -0.6, 0.6 ] );
-    title(line(3));
+    if plot_b == 1
+        figure(); hold on; grid on;
+        axis( [ -0.8, 0.7, -0.6, 0.6 ] );
+        title(line(3));
+    end
     
     aperture_xz_offset = pdist([spd_xy(1), spd_xy(2); aperture_xy(1), aperture_xy(2)]);
     aperture_xz = [1, 0] * aperture_xz_offset;
