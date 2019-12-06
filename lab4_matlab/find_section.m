@@ -35,6 +35,9 @@ for i = 1:length(inSet)
         outSet(k, :) = [y2 z];
       %  outSet(4+k, :) = [y2 z];
         k = k + 1;
-    end    
+    end 
+    if length(outSet) == 3
+       outSet(4, :) = outSet(1, :);
+    end
 end
 

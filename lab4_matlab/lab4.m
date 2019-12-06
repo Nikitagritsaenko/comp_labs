@@ -26,7 +26,7 @@ spd_z_step = -1.72 * 1e-03;
 spd_xy = spd_start + spd_vect * (spd_xy_step(2) / 2 + 0.26 * 1e-03);
 
 
-[flux,RBDRY,ZBDRY,NBDRY,R,Z,time,rdim,zdim] = gfile_extractor_1t(037000,00156,65);
+[flux,RBDRY,ZBDRY,NBDRY,R,Z,time,rdim,zdim] = gfile_extractor_1t(035685,00150,65);
 c_r = 0
 c_z = 0
 r_size = size(R, 2);
@@ -138,33 +138,48 @@ for j = 0:15
     
     % цикл по сегментам разбиения
     segments = points;
-    set_prev = [];
+    
     
     for i = 1:length(segments)
         set = find_section(segments(i,:,:), line(3));
+        set_addit = [];
+        index_addit = 1;
         if (~isempty(set))
-            if (plot_b == 1)  
+            if (plot_b == 1)
                 plot(set(:, 1), set(:, 2), 'b', 'linewidth', 0.8);
                 plot(-set(:, 1), set(:, 2), 'b', 'linewidth', 0.8);
-                if (size(set, 1) < 4)
+                if (size(set, 1) == 3)
+                    x_max = max(set(:,1));
                     for q = 1:size(set(:, 1), 1)
                         x = [set(q, 1), -set(q, 1)];
                         y = [set(q, 2), set(q, 2)];
-                        plot(x, y, 'b');
+                        if x(1) ~= x_max
+                            set_addit(index_addit, :) = [x(1) x(2)];
+                            set_addit(index_addit+1, :) = [y(1) y(2)];
+                            index_addit = index_addit + 2;
+                            plot(x, y, 'b', 'linewidth', 0.8);
+                        end
                     end
-         
+                elseif (size(set, 1) < 3)
+                    for q = 1:size(set(:, 1), 1)
+                        x = [set(q, 1), -set(q, 1)];
+                        y = [set(q, 2), set(q, 2)];
+                        set_addit(index_addit, :) = [x(1) x(2)];
+                        set_addit(index_addit+1, :) = [y(1) y(2)];
+                        index_addit = index_addit + 2;
+                        plot(x, y, 'b', 'linewidth', 0.8);
+                    end
+                    
                 end
-                
-                set_prev = set;
             end
             
             % ----- цикл по лучам
             for spd_z = 1:16
                 line2 = find_line_eq([spd_r, spd_z_start + spd_z_step * (spd_z - 1)], [spd_r, 0] + aperture_xz);
-             
+                
                 % лучи в 4-х плоскостях попадают в центральный столб токамака
                 if (j < 13)
-                    points_int = findIntersection(set, line2);
+                    points_int = lineIntersection(set, line2, 1);
                     
                     % пересечение прямой и кривой
                     if (size(points_int, 1) > 1)
@@ -175,10 +190,27 @@ for j = 0:15
                             K(j * 16 + spd_z, i) = K(j * 16 + spd_z, i) + pdist([points_int(point_ind, 1) points_int(point_ind, 2); points_int(point_ind+1, 1) points_int(point_ind+1, 2)]);
                         end
                     end
+                    if (~isempty(set_addit))
+                        for s_a_i = 1:2:length(set_addit(:, 1)) - 1
+                            set_a(:,1) = set_addit(s_a_i, :);
+                            set_a(:,2) = set_addit(s_a_i + 1, :);
+                            points_int = lineIntersection(set_a, line2, 0);
+                            
+                            % пересечение прямой и кривой
+                            if (size(points_int, 1) > 0)
+                                if (plot_b == 1)
+                                    plot(points_int(:, 1), points_int(:, 2), 'ko', 'MarkerSize', 3);
+                                end
+                                for point_ind = 1:1
+%                                     K(j * 16 + spd_z, i) = K(j * 16 + spd_z, i) + pdist([points_int(point_ind, 1) points_int(point_ind, 2); points_int(point_ind+1, 1) points_int(point_ind+1, 2)]);
+                                end
+                            end
+                        end
+                    end
                 end
                 % if (j >= 6) % мб и не сработает
                 
-                points_int = findIntersection([-set(:, 1), set(:, 2)], line2);
+                points_int = lineIntersection([-set(:, 1), set(:, 2)], line2, 1);
                 
                 if (size(points_int, 1) > 1)
                     if (plot_b == 1)
@@ -188,7 +220,8 @@ for j = 0:15
                         K(j * 16 + spd_z, i) = K(j * 16 + spd_z, i) + pdist([points_int(point_ind, 1) points_int(point_ind, 2); points_int(point_ind+1, 1) points_int(point_ind+1, 2)]);
                     end
                 end
- 
+                
+                
                 if (plot_b == 1)
                     plot([spd_r spd_r + (spd_r+aperture_xz(1)-spd_r)*100], [(spd_z_start+spd_z_step*(spd_z-1)),...
                         (spd_z_start+spd_z_step*(spd_z-1))+(0-(spd_z_start+spd_z_step*(spd_z-1)))*100 ], 'r', 'linewidth', 0.8);
