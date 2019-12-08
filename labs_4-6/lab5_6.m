@@ -61,7 +61,6 @@ x = A \ b;
 histogram(x);
 xlabel('x');
 %% Метод 1; x = inv(A' * A) * A' * b;
-% почему-то вообще другое получается
 figure('color', 'white');
 title('Solution histogram (method 1)');
 hold on;
@@ -73,9 +72,9 @@ x = inv(A' * A) * A' * b;
 histogram(x);
 xlabel('x');
 
-%% ИСЛАУ
+%% Метод 2. ИСЛАУ.Добъемся того, что tolmax = 0
 
-%% добъемся того, что tolmax = 0
+%% Сначала неудачная попытка
 k = 0.1
 infA = A * (1-k);
 supA = A * (1+k);
@@ -91,9 +90,30 @@ bb = reshape(B, [256, 1]);
 
 [tolmax, argmax, envs, ccode, flag] = tolsolvty(infA, supA, infb, supb);
 
+figure('color', 'white');
+x = 1:1:208;
+plot(x, argmax, 'b'); hold on; grid on;
+title('argmax');
+xlabel('index');
+ylabel('value');
+
+figure('color', 'white');
+x = 1:1:256;
+y_sol = A * argmax;
+y_inf = infb;
+y_sup = supb;
+plot(x, y_inf, 'color', 'k', 'linewidth', 1); hold on;
+plot(x, y_sol, 'color', 'blue', 'linewidth', 1); hold on;
+plot(x, y_sup, 'color', 'red', 'linewidth', 1); hold on;
+title('Solvabitity');
+xlabel('index');
+ylabel('value');
+legend('infb', 'A * argmax', 'supb');
+%% Теперь удачная попытка
 tolmax
-infb = infb - abs(tolmax) - 0.000002;
-supb = supb + abs(tolmax) + 0.000002;
+eps = 0.000002;
+infb = infb - abs(tolmax) - eps;
+supb = supb + abs(tolmax) + eps;
 
 [tolmax, argmax, envs, ccode, flag] = tolsolvty(infA, supA, infb, supb);
 if flag == 1
@@ -102,8 +122,26 @@ if flag == 1
     title("Solution histogram (method 2), tolmax = " + tolmax);
     xlabel('x');
 end
-    
 
+figure('color', 'white');
+x = 1:1:208;
+plot(x, argmax, 'b'); hold on; grid on;
+title('argmax');
+xlabel('index');
+ylabel('value');
+
+figure('color', 'white');
+x = 1:1:256;
+y_sol = A * argmax;
+y_inf = infb;
+y_sup = supb;
+plot(x, y_inf, 'color', 'k', 'linewidth', 1); hold on;
+plot(x, y_sol, 'color', 'blue', 'linewidth', 1); hold on;
+plot(x, y_sup, 'color', 'red', 'linewidth', 1); hold on;
+title('Solvabitity');
+xlabel('index');
+ylabel('value');
+legend('infb', 'A * argmax', 'supb');
 %% Метод 3 (Линейное программирование)
 N = 256;
 M = 208;
@@ -134,16 +172,24 @@ lb = zeros(N+M, 1);
 
 xw = linprog(e,C,d,[],[],lb);
 x = xw(1:M, :);
+w = xw(M+1:M+N, :);
 
 figure('color', 'white');
 histogram(x);
 title("Solution histogram (method 3)");
 xlabel('x');
 
+x = 1:1:N;
 figure('color', 'white');
-title("x-values");
-hold on;
-imagesc(x);
-colorbar;
+plot(x, w, 'bo'); hold on; grid on;
+title("w-values");
+xlabel('index');
+ylabel('w');
+
+%сумма весов
+e = ones(1, N);
+sum_w = e * w 
+
+
         
         

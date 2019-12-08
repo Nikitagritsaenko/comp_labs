@@ -124,7 +124,7 @@ for j = 0:15
     SPD_XY(j + 2, :) = SPD_XY(j + 1, :) + spd_vect * spd_xy_step(mod(j, 2) + 1);
 end
 %%
-plot_b = 1;
+plot_b = 0;
 for j = 0:15
     line = LINE(j + 1, :);
     spd_r = SPD_R(j + 1, :);
